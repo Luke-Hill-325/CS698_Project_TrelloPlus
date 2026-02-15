@@ -12,14 +12,14 @@
 | 2.3 | 2026-02-15 | Naming convention alignment: UniversallyUniqueIdentifier→UUID, JsonWebTokenUtil→JWTUtil, LargeLanguageModelClient→LLMClient, ArtificialIntelligenceEngine→AIEngine, *Identifier→*Id field names, identifier→id database columns, identifier_→idx_ index prefixes |
 | 2.2 | 2026-02-15 | Technology stack alignment: upgraded Java 17 to Java 21 LTS, PostgreSQL 15.5 to 16.1, LangChain4j 0.27.0 to 0.24.0, Flyway 9.22.3 to 10.x for consistency with dev_spec1 and dev_spec_3 |
 | 2.1 | 2026-02-15 | Consistency fixes: aligned author info, added missing WF6 enums to diagram, added missing database schemas (decisions, changes, approval_requests, approval_responses), added missing repositories (ChecklistRepository, CommentRepository), fixed class type mismatches, fixed User role field type |
-| 2.0 | 2024-02-15 | Fully compliant development specification |
+| 2.0 | 2026-02-15 | Fully compliant development specification |
+| 1.0 | 2026-02-15 | Initial Dev Spec |
 
 ## Authors and Roles
 
 | Author | Role | Version |
 |--------|------|---------|
-| Luke Hill | Lead Architect | 2.0, 2.1 |
-| Vishesh Raju | Technical Reviewer | 1.0, 2.0 |
+| Vishesh Raju | Developer | 1.0, 2.0, 2.1, 2.2, 2.3 |
 
 ---
 

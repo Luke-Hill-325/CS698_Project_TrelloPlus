@@ -9,7 +9,7 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.0 | 2024-02-15 | Initial development specification |
+| 1.0 | 2026-02-15 | Initial development specification |
 
 ## Author and Role
 
