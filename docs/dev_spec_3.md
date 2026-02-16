@@ -18,7 +18,7 @@
 
 | Author | Role | Version |
 |--------|------|---------|
-| Swechcha Ambati | Software Engineer | 1.2 |
+| Swechcha Ambati | Software Engineer | 1.3 |
 
 ---
 
