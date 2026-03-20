@@ -37,6 +37,7 @@ CS698_Project_TrelloPlus/
 **Backend:**
 - Java 21
 - Spring Boot 3.2.0
+- Maven 3.8+
 - PostgreSQL 16.1
 - Spring Security + JWT
 - LangChain4j (for LLM integration - currently mocked)
@@ -51,7 +52,7 @@ CS698_Project_TrelloPlus/
 ## Prerequisites
 
 - **Java 21+** (download from [oracle.com](https://www.oracle.com/java/technologies/downloads/))
-- **Maven 3.8+** (download from [maven.apache.org](https://maven.apache.org/download.cgi))
+- **Maven 3.8+** (on Arch Linux: `sudo pacman -S maven`)
 - **PostgreSQL 16+** (download from [postgresql.org](https://www.postgresql.org/download/))
 - **Node.js 18+** (download from [nodejs.org](https://nodejs.org/))
 
