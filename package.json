@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test:frontend:concurrency": "node scripts/playwright_frontend_login_10.mjs"
+    "test:frontend:concurrency": "node scripts/playwright_frontend_login_10.mjs",
+    "test:token:storage": "node scripts/test_token_storage.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
