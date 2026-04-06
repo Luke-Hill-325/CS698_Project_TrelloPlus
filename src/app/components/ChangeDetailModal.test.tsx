@@ -19,7 +19,7 @@ function createContainer() {
   return container;
 }
 
-function renderModal(root: Root, change: ChangeRequest) {
+function renderModal(root: Root, change: ChangeRequest | null) {
   act(() => {
     root.render(<ChangeDetailModal change={change} open onClose={() => undefined} />);
   });
@@ -49,6 +49,60 @@ function buildChange(): ChangeRequest {
       columnId: 'stage-1',
       columnTitle: 'To Do',
     },
+    affectedCards: [],
+    affectedStages: [],
+    affectedMembers: [],
+    riskLevel: 'LOW',
+    approvals: [],
+    requiredApprovals: 0,
+    rollbackAvailable: false,
+  };
+}
+
+function buildCreateChange(): ChangeRequest {
+  return {
+    id: 'change-create',
+    meetingId: 'meeting-1',
+    meetingTitle: 'U3 Review',
+    type: 'CREATE_CARD',
+    status: 'PENDING',
+    requestedBy: 'system',
+    requestedAt: '2026-04-05T10:00:00.000Z',
+    projectId: 'project-1',
+    before: undefined,
+    after: {
+      id: 'card-create',
+      title: 'New card',
+      stageId: 'stage-1',
+      assignee: { name: 'Casey' },
+    } as any,
+    affectedCards: [],
+    affectedStages: [],
+    affectedMembers: [],
+    riskLevel: 'LOW',
+    approvals: [],
+    requiredApprovals: 0,
+    rollbackAvailable: false,
+  };
+}
+
+function buildDeleteChange(): ChangeRequest {
+  return {
+    id: 'change-delete',
+    meetingId: 'meeting-1',
+    meetingTitle: 'U3 Review',
+    type: 'DELETE_CARD',
+    status: 'PENDING',
+    requestedBy: 'system',
+    requestedAt: '2026-04-05T10:00:00.000Z',
+    projectId: 'project-1',
+    before: {
+      id: 'card-1',
+      title: 'Delete me',
+      stageName: 'Archived',
+      notes: 'Remove old item',
+    } as any,
+    after: undefined,
     affectedCards: [],
     affectedStages: [],
     affectedMembers: [],
@@ -92,6 +146,20 @@ afterEach(() => {
 });
 
 describe('ChangeDetailModal', () => {
+  it('returns null when no change is provided', () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    renderModal(root, null);
+
+    expect(container.innerHTML).toBe('');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it('renders the live before state for update changes and shows resolved column labels', () => {
     const container = createContainer();
     const root = createRoot(container);
@@ -106,6 +174,40 @@ describe('ChangeDetailModal', () => {
     expect(container.textContent).toContain('Review');
     expect(container.textContent).toContain('Updated title');
     expect(container.textContent).toContain('Updated description');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('renders create-card details with after-only state and nested named values', () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    renderModal(root, buildCreateChange());
+
+    expect(container.textContent).toContain('CREATE CARD');
+    expect(container.textContent).toContain('New Card');
+    expect(container.textContent).toContain('Review');
+    expect(container.textContent).toContain('Casey');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('renders delete-card details with before-only state', () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    renderModal(root, buildDeleteChange());
+
+    expect(container.textContent).toContain('DELETE CARD');
+    expect(container.textContent).toContain('Card to be Deleted');
+    expect(container.textContent).toContain('Archived');
+    expect(container.textContent).toContain('Remove old item');
 
     act(() => {
       root.unmount();

@@ -120,6 +120,62 @@ class ChangePreviewServiceUserStory3Test {
     }
 
     @Test
+    void listChanges_returnsProjectScopedChangesForValidStatus() {
+        when(changeRepository.findByMeetingProjectIdAndStatus(projectId, Change.ChangeStatus.PENDING)).thenReturn(List.of(change));
+
+        List<ChangeDTO> result = service.listChanges(null, projectId, "PENDING", userId);
+
+        assertEquals(1, result.size());
+        assertEquals(changeId, result.get(0).getId());
+        verify(changeRepository).findByMeetingProjectIdAndStatus(projectId, Change.ChangeStatus.PENDING);
+    }
+
+    @Test
+    void listChanges_returnsMeetingScopedChangesWithoutStatusFilter() {
+        when(changeRepository.findByMeetingId(meetingId)).thenReturn(List.of(change));
+
+        List<ChangeDTO> result = service.listChanges(meetingId, null, "   ", userId);
+
+        assertEquals(1, result.size());
+        assertEquals(changeId, result.get(0).getId());
+        verify(changeRepository).findByMeetingId(meetingId);
+    }
+
+    @Test
+    void listChanges_filtersAccessibleProjectChangesWhenFilteringByStatusOnly() {
+        Project otherProject = Project.builder()
+            .id(UUID.randomUUID())
+            .name("Other project")
+            .owner(User.builder().id(UUID.randomUUID()).username("other-owner").email("other@example.com").passwordHash("hash").role(User.UserRole.MANAGER).build())
+            .build();
+        Meeting otherMeeting = Meeting.builder()
+            .id(UUID.randomUUID())
+            .project(otherProject)
+            .title("Other meeting")
+            .createdBy(otherProject.getOwner())
+            .build();
+        Change otherChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(otherMeeting)
+            .changeType(Change.ChangeType.UPDATE_CARD)
+            .beforeState("{\"id\":\"card-2\"}")
+            .afterState("{\"id\":\"card-2\"}")
+            .status(Change.ChangeStatus.PENDING)
+            .createdAt(LocalDateTime.parse("2026-04-05T11:00:00"))
+            .build();
+
+        when(changeRepository.findByStatus(Change.ChangeStatus.PENDING)).thenReturn(List.of(change, otherChange));
+        when(projectMemberRepository.findMemberRole(projectId, userId)).thenReturn(Optional.of("owner"));
+        when(projectMemberRepository.findMemberRole(otherProject.getId(), userId)).thenReturn(Optional.empty());
+
+        List<ChangeDTO> result = service.listChanges(null, null, "pending", userId);
+
+        assertEquals(1, result.size());
+        assertEquals(changeId, result.get(0).getId());
+        verify(changeRepository).findByStatus(Change.ChangeStatus.PENDING);
+    }
+
+    @Test
     void listChanges_rejectsInvalidStatus() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
             service.listChanges(meetingId, null, "not-a-real-status", userId)
@@ -127,6 +183,18 @@ class ChangePreviewServiceUserStory3Test {
 
         assertEquals(400, ex.getStatusCode().value());
         assertTrue(ex.getReason().contains("Invalid status"));
+    }
+
+    @Test
+    void getChange_throwsWhenChangeMissing() {
+        when(changeRepository.findById(changeId)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+            service.getChange(changeId, userId)
+        );
+
+        assertEquals(404, ex.getStatusCode().value());
+        assertTrue(ex.getReason().contains("Change not found"));
     }
 
     @Test
@@ -152,6 +220,89 @@ class ChangePreviewServiceUserStory3Test {
         assertEquals("HIGH", impact.getRiskLevel());
         assertEquals(List.of("card-referenced-in-after-state"), impact.getAffectedCards());
         assertTrue(impact.getPotentialConflicts().isEmpty());
+    }
+
+    @Test
+    void getDiffAndImpact_coverOtherChangeTypeBranches() {
+        Change moveChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(meeting)
+            .changeType(Change.ChangeType.MOVE_CARD)
+            .beforeState("{\"id\":\"card-1\"}")
+            .afterState("{\"id\":\"card-1\",\"stageId\":\"stage-1\"}")
+            .status(Change.ChangeStatus.PENDING)
+            .build();
+        Change updateChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(meeting)
+            .changeType(Change.ChangeType.UPDATE_CARD)
+            .beforeState("{\"id\":\"card-1\"}")
+            .afterState("{\"id\":\"card-1\"}")
+            .status(Change.ChangeStatus.PENDING)
+            .build();
+        Change createChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(meeting)
+            .changeType(Change.ChangeType.CREATE_CARD)
+            .beforeState(null)
+            .afterState("{\"id\":\"card-1\"}")
+            .status(Change.ChangeStatus.PENDING)
+            .build();
+
+        when(changeRepository.findById(moveChange.getId())).thenReturn(Optional.of(moveChange));
+        when(changeRepository.findById(updateChange.getId())).thenReturn(Optional.of(updateChange));
+        when(changeRepository.findById(createChange.getId())).thenReturn(Optional.of(createChange));
+
+        ChangeDiffDTO moveDiff = service.getDiff(moveChange.getId(), userId);
+        ChangeDiffDTO updateDiff = service.getDiff(updateChange.getId(), userId);
+        ChangeDiffDTO createDiff = service.getDiff(createChange.getId(), userId);
+
+        ChangeImpactDTO moveImpact = service.getImpact(moveChange.getId(), userId);
+        ChangeImpactDTO updateImpact = service.getImpact(updateChange.getId(), userId);
+        ChangeImpactDTO createImpact = service.getImpact(createChange.getId(), userId);
+
+        assertEquals("Card moved between workflow columns", moveDiff.getSummary());
+        assertEquals("Card fields were updated", updateDiff.getSummary());
+        assertEquals("New card was proposed", createDiff.getSummary());
+        assertEquals("LOW", moveImpact.getRiskLevel());
+        assertEquals("MEDIUM", updateImpact.getRiskLevel());
+        assertEquals("LOW", createImpact.getRiskLevel());
+    }
+
+    @Test
+    void getImpact_returnsUnknownCardWhenNoStateContainsAnId() {
+        Change emptyChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(meeting)
+            .changeType(Change.ChangeType.CREATE_CARD)
+            .beforeState("{}")
+            .afterState("{}")
+            .status(Change.ChangeStatus.PENDING)
+            .build();
+
+        when(changeRepository.findById(emptyChange.getId())).thenReturn(Optional.of(emptyChange));
+
+        ChangeImpactDTO impact = service.getImpact(emptyChange.getId(), userId);
+
+        assertEquals(List.of("unknown"), impact.getAffectedCards());
+    }
+
+    @Test
+    void getImpact_usesBeforeStateCardWhenAfterStateHasNoId() {
+        Change beforeOnlyChange = Change.builder()
+            .id(UUID.randomUUID())
+            .meeting(meeting)
+            .changeType(Change.ChangeType.UPDATE_CARD)
+            .beforeState("{\"id\":\"card-42\"}")
+            .afterState("{}")
+            .status(Change.ChangeStatus.PENDING)
+            .build();
+
+        when(changeRepository.findById(beforeOnlyChange.getId())).thenReturn(Optional.of(beforeOnlyChange));
+
+        ChangeImpactDTO impact = service.getImpact(beforeOnlyChange.getId(), userId);
+
+        assertEquals(List.of("card-referenced-in-before-state"), impact.getAffectedCards());
     }
 
     @Test
@@ -184,5 +335,26 @@ class ChangePreviewServiceUserStory3Test {
         assertEquals(actor.getUsername(), result.get(0).getActorName());
         assertEquals(entry.getDetails(), result.get(0).getDetails());
         assertEquals(entry.getCreatedAt(), result.get(0).getCreatedAt());
+    }
+
+    @Test
+    void getHistory_handlesAuditEntriesWithoutActor() {
+        ChangeAuditEntry entry = ChangeAuditEntry.builder()
+            .id(UUID.randomUUID())
+            .change(change)
+            .action(ChangeAuditEntry.AuditAction.VIEWED)
+            .actor(null)
+            .details("{\"event\":\"viewed\"}")
+            .createdAt(LocalDateTime.parse("2026-04-05T10:20:00"))
+            .build();
+
+        when(changeAuditEntryRepository.findByChangeIdOrderByCreatedAtDesc(changeId)).thenReturn(List.of(entry));
+
+        List<ChangeHistoryEntryDTO> result = service.getHistory(changeId, userId);
+
+        assertEquals(1, result.size());
+        assertNull(result.get(0).getActorId());
+        assertNull(result.get(0).getActorName());
+        assertEquals("VIEWED", result.get(0).getAction());
     }
 }

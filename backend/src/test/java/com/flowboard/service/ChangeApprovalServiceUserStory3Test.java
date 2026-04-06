@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -200,5 +201,57 @@ class ChangeApprovalServiceUserStory3Test {
         ArgumentCaptor<ChangeAuditEntry> auditCaptor = ArgumentCaptor.forClass(ChangeAuditEntry.class);
         verify(changeAuditEntryRepository).save(auditCaptor.capture());
         assertEquals(ChangeAuditEntry.AuditAction.APPROVED, auditCaptor.getValue().getAction());
+    }
+
+    @Test
+    void decide_createsResponseWhenActorHasNotRespondedYet() {
+        when(changeApprovalResponseRepository.findByApprovalRequestIdAndUserId(approvalRequest.getId(), actorId))
+            .thenReturn(Optional.empty());
+        when(changeApprovalResponseRepository.countByApprovalRequestIdAndDecision(
+            approvalRequest.getId(),
+            ChangeApprovalResponse.ApprovalDecision.APPROVE
+        )).thenReturn(0L);
+        when(changeApprovalResponseRepository.countByApprovalRequestIdAndDecision(
+            approvalRequest.getId(),
+            ChangeApprovalResponse.ApprovalDecision.REJECT
+        )).thenReturn(0L);
+        when(changeApprovalResponseRepository.findByApprovalRequestId(approvalRequest.getId())).thenReturn(List.of());
+        when(meetingMemberRepository.countByMeetingId(meetingId)).thenReturn(4L);
+
+        service.decide(changeId, actor, ChangeDecisionRequest.builder().decision("APPROVE").feedback("first response").build());
+
+        assertEquals(Change.ChangeStatus.UNDER_REVIEW, change.getStatus());
+        verify(changeApprovalResponseRepository, atLeast(2)).save(any(ChangeApprovalResponse.class));
+    }
+
+    @Test
+    void decide_acceptsDeferAndKeepsUnderReview() {
+        when(changeApprovalResponseRepository.countByApprovalRequestIdAndDecision(
+            approvalRequest.getId(),
+            ChangeApprovalResponse.ApprovalDecision.APPROVE
+        )).thenReturn(0L);
+        when(changeApprovalResponseRepository.countByApprovalRequestIdAndDecision(
+            approvalRequest.getId(),
+            ChangeApprovalResponse.ApprovalDecision.REJECT
+        )).thenReturn(0L);
+        when(changeApprovalResponseRepository.findByApprovalRequestId(approvalRequest.getId())).thenReturn(List.of(actorResponse));
+        when(meetingMemberRepository.countByMeetingId(meetingId)).thenReturn(3L);
+
+        service.decide(changeId, actor, ChangeDecisionRequest.builder().decision("DEFER").feedback("Need more data").build());
+
+        assertEquals(Change.ChangeStatus.UNDER_REVIEW, change.getStatus());
+    }
+
+    @Test
+    void getApprovalStatus_throwsWhenChangeMissing() {
+        UUID missingChangeId = UUID.randomUUID();
+        when(changeRepository.findById(missingChangeId)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+            service.getApprovalStatus(missingChangeId)
+        );
+
+        assertEquals(404, ex.getStatusCode().value());
+        assertTrue(ex.getReason().contains("Change not found"));
     }
 }

@@ -132,6 +132,21 @@ function createChange(changeOverrides: Record<string, unknown> = {}) {
   };
 }
 
+function createReadOnlyProjectResponse() {
+  return {
+    ...createProjectResponse(),
+    members: [
+      {
+        id: 'owner-1',
+        email: 'owner@example.com',
+        username: 'owner',
+        role: 'owner',
+        created_at: '2026-04-01T00:00:00.000Z',
+      },
+    ],
+  };
+}
+
 function createStaleChange() {
   return createChange({
     id: 'change-stale',
@@ -147,6 +162,49 @@ function createStaleChange() {
       columnId: 'stage-1',
       columnTitle: 'To Do',
     }),
+  });
+}
+
+function createMoveChange() {
+  return createChange({
+    id: 'change-move',
+    changeType: 'MOVE_CARD',
+    beforeState: JSON.stringify({
+      id: 'card-1',
+      title: 'Implement auth flow',
+      stageTitle: 'To Do',
+    }),
+    afterState: JSON.stringify({
+      id: 'card-1',
+      title: 'Implement auth flow',
+      stageTitle: 'Doing',
+    }),
+  });
+}
+
+function createCreateChange() {
+  return createChange({
+    id: 'change-create',
+    changeType: 'CREATE_CARD',
+    beforeState: undefined,
+    afterState: JSON.stringify({
+      id: 'card-2',
+      title: 'New card from meeting',
+      columnTitle: 'To Do',
+    }),
+  });
+}
+
+function createDeleteChange() {
+  return createChange({
+    id: 'change-delete',
+    changeType: 'DELETE_CARD',
+    beforeState: JSON.stringify({
+      id: 'card-1',
+      title: 'Legacy card',
+      columnTitle: 'Done',
+    }),
+    afterState: undefined,
   });
 }
 
@@ -194,6 +252,52 @@ afterEach(() => {
 });
 
 describe('MeetingChanges', () => {
+  it('renders the empty state when the meeting has no changes', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse());
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    expect(container.textContent).toContain('No changes');
+    expect(container.textContent).toContain('There are no board changes for this meeting');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows read only when the current user is not the project owner', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    localStorage.setItem('user', JSON.stringify({ id: 'someone-else', username: 'guest', role: 'member' }));
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([createChange()]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createReadOnlyProjectResponse());
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    const readOnlyButton = findButton(container, 'Read Only');
+    expect(readOnlyButton).toBeDefined();
+    expect(readOnlyButton?.disabled).toBe(true);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it('loads meeting changes and applies a change to the board', async () => {
     const container = createContainer();
     const root = createRoot(container);
@@ -260,6 +364,211 @@ describe('MeetingChanges', () => {
     });
 
     expect(pageMocks.applyChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows a mapped error when apply change fails because the card is missing', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([createChange()]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse());
+    pageMocks.applyChange.mockRejectedValue(new Error('Card not found: card-1'));
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    const applyButton = findButton(container, 'Apply to Board');
+    expect(applyButton).toBeDefined();
+
+    await act(async () => {
+      applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await flush();
+
+    expect(pageMocks.toastError).toHaveBeenCalledWith(
+      'This change references a card that no longer exists. Regenerate the summary to refresh stale changes.'
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows a mapped error when apply change fails because the stage is missing', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    const stageMissingChange = createChange({
+      id: 'change-stage-missing',
+      beforeState: JSON.stringify({
+        id: 'card-1',
+        title: 'Old title',
+        columnId: 'stage-1',
+        columnTitle: 'To Do',
+      }),
+      afterState: JSON.stringify({
+        id: 'card-1',
+        title: 'Updated title',
+        columnId: 'stage-1',
+        columnTitle: 'To Do',
+      }),
+    });
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([stageMissingChange]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse());
+    pageMocks.applyChange.mockRejectedValue(new Error('Stage not found: stage-1'));
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    const applyButton = findButton(container, 'Apply to Board');
+    expect(applyButton).toBeDefined();
+
+    await act(async () => {
+      applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await flush();
+
+    expect(pageMocks.toastError).toHaveBeenCalledWith(
+      'This change references a column that no longer exists. Regenerate the summary to refresh stale changes.'
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('uses the raw error message when apply change fails with an unmapped error', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([createChange()]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse());
+    pageMocks.applyChange.mockRejectedValue(new Error('Backend timeout'));
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    const applyButton = findButton(container, 'Apply to Board');
+    expect(applyButton).toBeDefined();
+
+    await act(async () => {
+      applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await flush();
+
+    expect(pageMocks.toastError).toHaveBeenCalledWith('Backend timeout');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('uses fallback error text when apply change rejects with a non-Error value', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([createChange()]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse());
+    pageMocks.applyChange.mockRejectedValue({ code: 'E_UNKNOWN' });
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    const applyButton = findButton(container, 'Apply to Board');
+    expect(applyButton).toBeDefined();
+
+    await act(async () => {
+      applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await flush();
+
+    expect(pageMocks.toastError).toHaveBeenCalledWith('Failed to apply change to board');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('renders CREATE_CARD, DELETE_CARD, MOVE_CARD and unknown descriptions', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockResolvedValue(createMeetingResponse());
+    pageMocks.listChanges.mockResolvedValue([
+      createCreateChange(),
+      createDeleteChange(),
+      createMoveChange(),
+      createChange({
+        id: 'change-unknown',
+        changeType: 'SOMETHING_ELSE',
+        afterState: JSON.stringify({ title: 'Fallback title' }),
+      }),
+    ]);
+    pageMocks.getUserProjects.mockResolvedValue([createProjectResponse()]);
+    pageMocks.getProject.mockResolvedValue(createProjectResponse(['card-1', 'card-2']));
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    expect(container.textContent).toContain('Create new card: New card from meeting');
+    expect(container.textContent).toContain('Delete card: Legacy card');
+    expect(container.textContent).toContain('Move card: Implement auth flow (To Do');
+    expect(container.textContent).toContain('Fallback title');
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('shows meeting-not-found fallback and navigates back when initial load fails', async () => {
+    const container = createContainer();
+    const root = createRoot(container);
+
+    pageMocks.getMeeting.mockRejectedValue(new Error('Meeting API unavailable'));
+
+    await renderWithRoot(root);
+    await flush();
+    await flush();
+
+    expect(container.textContent).toContain('Meeting not found');
+    expect(pageMocks.toastError).toHaveBeenCalledWith('Meeting API unavailable');
+
+    const backButton = findButton(container, 'Back to Meetings');
+    expect(backButton).toBeDefined();
+
+    await act(async () => {
+      backButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(pageMocks.navigate).toHaveBeenCalledWith('/meetings');
 
     await act(async () => {
       root.unmount();
