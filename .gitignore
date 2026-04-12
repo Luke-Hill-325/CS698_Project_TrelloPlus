@@ -140,6 +140,10 @@ out/
 .terraform/
 # AWS CLI credentials and config (local only)
 .aws/
+# Deployment credentials
+aws-deployment-credentials.env
+*.env.local
+.env.deploy
 # Lambda layer packages
 layer/
 *.layer.zip
