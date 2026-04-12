@@ -8,7 +8,6 @@ import com.flowboard.repository.UserRepository;
 import com.flowboard.service.IdempotencyService;
 import com.flowboard.service.JWTService;
 import com.flowboard.service.ProjectService;
-import com.flowboard.service.RateLimitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -48,9 +47,6 @@ class ProjectControllerUserStory1ApiTest {
 
     @MockBean
     private UserRepository userRepository;
-
-    @MockBean
-    private RateLimitService rateLimitService;
 
     @MockBean
     private IdempotencyService idempotencyService;
@@ -95,12 +91,6 @@ class ProjectControllerUserStory1ApiTest {
             .andExpect(jsonPath("$.name").value("Website Redesign"))
             .andExpect(jsonPath("$.board_id").value(boardId.toString()));
 
-        verify(rateLimitService).check(
-            eq("project-create:user:" + userId),
-            eq(20),
-            eq(Duration.ofMinutes(1)),
-            eq("Too many project creation requests. Please try again later.")
-        );
         verify(idempotencyService).ensureUnique(
             eq("project-create:" + userId + ":us1-create-001"),
             eq(Duration.ofHours(24)),

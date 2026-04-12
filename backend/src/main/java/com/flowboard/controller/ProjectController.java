@@ -6,7 +6,6 @@ import com.flowboard.repository.UserRepository;
 import com.flowboard.service.IdempotencyService;
 import com.flowboard.service.JWTService;
 import com.flowboard.service.ProjectService;
-import com.flowboard.service.RateLimitService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +25,6 @@ public class ProjectController {
     private final ProjectService projectService;
     private final JWTService jwtService;
     private final UserRepository userRepository;
-    private final RateLimitService rateLimitService;
     private final IdempotencyService idempotencyService;
 
     @PostMapping
@@ -36,12 +34,6 @@ public class ProjectController {
         @RequestHeader("Authorization") String authHeader,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         UUID userId = jwtService.extractUserIdFromAuthHeader(authHeader);
-        rateLimitService.check(
-            "project-create:user:" + userId,
-            20,
-            Duration.ofMinutes(1),
-            "Too many project creation requests. Please try again later."
-        );
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             idempotencyService.ensureUnique(
                 "project-create:" + userId + ":" + idempotencyKey,
@@ -81,12 +73,6 @@ public class ProjectController {
         @Valid @RequestBody UpdateProjectRequest request,
         @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserIdFromAuthHeader(authHeader);
-        rateLimitService.check(
-            "project-update:user:" + userId,
-            60,
-            Duration.ofMinutes(1),
-            "Too many update requests. Please try again later."
-        );
 
         return ResponseEntity.ok(projectService.updateProject(projectId, userId, request));
     }
@@ -97,12 +83,6 @@ public class ProjectController {
         @RequestHeader("Authorization") String authHeader,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         UUID userId = jwtService.extractUserIdFromAuthHeader(authHeader);
-        rateLimitService.check(
-            "project-delete:user:" + userId,
-            10,
-            Duration.ofMinutes(1),
-            "Too many delete requests. Please try again later."
-        );
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             idempotencyService.ensureUnique(
                 "project-delete:" + userId + ":" + projectId + ":" + idempotencyKey,
@@ -131,12 +111,6 @@ public class ProjectController {
         @RequestHeader("Authorization") String authHeader,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         UUID userId = jwtService.extractUserIdFromAuthHeader(authHeader);
-        rateLimitService.check(
-            "project-add-member:user:" + userId,
-            30,
-            Duration.ofMinutes(1),
-            "Too many add-member requests. Please try again later."
-        );
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             idempotencyService.ensureUnique(
                 "project-add-member:" + userId + ":" + projectId + ":" + idempotencyKey,
@@ -167,12 +141,6 @@ public class ProjectController {
         @RequestHeader("Authorization") String authHeader,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         UUID requesterId = jwtService.extractUserIdFromAuthHeader(authHeader);
-        rateLimitService.check(
-            "project-remove-member:user:" + requesterId,
-            30,
-            Duration.ofMinutes(1),
-            "Too many remove-member requests. Please try again later."
-        );
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             idempotencyService.ensureUnique(
                 "project-remove-member:" + requesterId + ":" + projectId + ":" + userId + ":" + idempotencyKey,

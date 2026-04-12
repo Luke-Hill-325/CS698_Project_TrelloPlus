@@ -128,3 +128,18 @@ spring-boot-build-info.properties
 bin/
 build/
 out/
+
+# ----- AWS Lambda Deployment -----
+# Lambda deployment packages (large JARs)
+/backend/target/*-lambda.jar
+# AWS SAM/CloudFormation build artifacts
+.aws-sam/
+# Terraform state files (if used for infrastructure)
+*.tfstate
+*.tfstate.*
+.terraform/
+# AWS CLI credentials and config (local only)
+.aws/
+# Lambda layer packages
+layer/
+*.layer.zip

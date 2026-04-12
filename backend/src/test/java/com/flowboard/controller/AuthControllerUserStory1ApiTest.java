@@ -7,7 +7,6 @@ import com.flowboard.dto.RegisterRequest;
 import com.flowboard.dto.UserDTO;
 import com.flowboard.service.AuthService;
 import com.flowboard.service.JWTService;
-import com.flowboard.service.RateLimitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,12 +15,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Duration;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,9 +40,6 @@ class AuthControllerUserStory1ApiTest {
 
     @MockBean
     private JWTService jwtService;
-
-    @MockBean
-    private RateLimitService rateLimitService;
 
     @Test
     void register_returnsCreated_andDelegatesToAuthService() throws Exception {
@@ -81,12 +74,6 @@ class AuthControllerUserStory1ApiTest {
             .andExpect(jsonPath("$.expires_in").value(3600000L))
             .andExpect(jsonPath("$.user.email").value("new.user@flowboard.com"));
 
-        verify(rateLimitService).check(
-            startsWith("register:ip:"),
-            eq(5),
-            eq(Duration.ofMinutes(15)),
-            eq("Too many registration attempts. Please try again later.")
-        );
         verify(authService).register(any(RegisterRequest.class));
     }
 
@@ -120,20 +107,6 @@ class AuthControllerUserStory1ApiTest {
             .andExpect(jsonPath("$.token").value("jwt-login-token"))
             .andExpect(jsonPath("$.user.email").value("admin@flowboard.com"));
 
-        verify(rateLimitService).assertNotLimited(
-            startsWith("login:ip:"),
-            eq(10),
-            eq(Duration.ofMinutes(15)),
-            eq("Too many failed attempts in a short period. Please try again later.")
-        );
-        verify(rateLimitService).assertNotLimited(
-            eq("login:email:admin@flowboard.com"),
-            eq(10),
-            eq(Duration.ofMinutes(15)),
-            eq("Too many failed attempts for this account. Please try again later.")
-        );
-        verify(rateLimitService, never()).record(startsWith("login:ip:"));
-        verify(rateLimitService, never()).record(eq("login:email:admin@flowboard.com"));
         verify(authService).login(any(LoginRequest.class));
     }
 

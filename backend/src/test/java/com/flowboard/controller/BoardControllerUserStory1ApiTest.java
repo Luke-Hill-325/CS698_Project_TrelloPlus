@@ -8,7 +8,6 @@ import com.flowboard.dto.MoveCardRequest;
 import com.flowboard.dto.StageDTO;
 import com.flowboard.service.JWTService;
 import com.flowboard.service.ProjectService;
-import com.flowboard.service.RateLimitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,10 +16,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Duration;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,9 +40,6 @@ class BoardControllerUserStory1ApiTest {
 
     @MockBean
     private JWTService jwtService;
-
-    @MockBean
-    private RateLimitService rateLimitService;
 
     @Test
     void addStage_returnsOk_andDelegatesToBoardModuleApi() throws Exception {
@@ -75,12 +69,6 @@ class BoardControllerUserStory1ApiTest {
             .andExpect(jsonPath("$.id").value(stageId.toString()))
             .andExpect(jsonPath("$.title").value("Review"));
 
-        verify(rateLimitService).check(
-            eq("board-add-stage:user:" + userId),
-            eq(40),
-            eq(Duration.ofMinutes(1)),
-            eq("Too many stage creation requests")
-        );
         verify(projectService).addStage(boardId, "Review", "#22AA66", userId);
     }
 

@@ -14,7 +14,6 @@ import com.flowboard.service.AuthService;
 import com.flowboard.service.IdempotencyService;
 import com.flowboard.service.JWTService;
 import com.flowboard.service.ProjectService;
-import com.flowboard.service.RateLimitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -57,9 +56,6 @@ class AuthToUserStory1FlowApiTest {
 
     @MockBean
     private UserRepository userRepository;
-
-    @MockBean
-    private RateLimitService rateLimitService;
 
     @MockBean
     private IdempotencyService idempotencyService;
