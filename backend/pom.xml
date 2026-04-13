@@ -57,7 +57,6 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.7.1</version>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- Database Migration -->
@@ -191,9 +190,6 @@
     <profiles>
         <profile>
             <id>lambda</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
             <properties>
                 <spring.profiles.active>lambda</spring.profiles.active>
             </properties>

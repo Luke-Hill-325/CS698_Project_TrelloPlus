@@ -22,6 +22,16 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        // Skip JWT validation for public endpoints (handle API Gateway stage prefixes)
+        return path.contains("/api/v1/auth/") || 
+               path.contains("/auth/") ||
+               path.equals("/error") ||
+               path.endsWith("/actuator/health");
+    }
+
+    @Override
     protected void doFilterInternal(
         HttpServletRequest request,
         HttpServletResponse response,

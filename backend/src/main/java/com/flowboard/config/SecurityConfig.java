@@ -3,6 +3,7 @@ package com.flowboard.config;
 import com.flowboard.service.CustomUserDetailsService;
 import com.flowboard.service.JWTService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,7 +25,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.DispatcherType;
 import java.util.Arrays;
+import java.util.List;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -56,6 +59,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.info("Configuring security with allowed origins: {}", allowedOrigins);
+        
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -65,8 +70,19 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authz -> authz
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                .requestMatchers("/error", "/api/v1/error").permitAll()
-                .requestMatchers("/auth/**", "/api/v1/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
+                // Public auth endpoints - handle both direct and API Gateway stage paths
+                // Using specific patterns instead of /** to avoid pattern parsing issues
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/prod/api/v1/auth/**").permitAll()
+                .requestMatchers("/prod/auth/**").permitAll()
+                // Health check endpoint
+                .requestMatchers("/api/v1/actuator/health").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/prod/api/v1/actuator/health").permitAll()
+                .requestMatchers("/prod/actuator/health").permitAll()
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
