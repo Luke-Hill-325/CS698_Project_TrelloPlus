@@ -47,6 +47,7 @@ jwt:
   expiration: 86400000  # 24 hours in milliseconds
 
 ai:
+  mock-enabled: ${AI_MOCK_ENABLED:false}
   ollama:
     base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
     model: ${OLLAMA_MODEL:qwen2.5:7b}

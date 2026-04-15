@@ -25,6 +25,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <langchain4j.version>0.24.0</langchain4j.version>
+        <aws.serverless.java.container.version>2.1.0</aws.serverless.java.container.version>
     </properties>
 
     <dependencies>
@@ -59,7 +60,6 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.7.1</version>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- Database Migration -->
@@ -98,6 +98,23 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
             <version>${langchain4j.version}</version>
+        </dependency>
+
+        <!-- AWS Lambda Support -->
+        <dependency>
+            <groupId>com.amazonaws.serverless</groupId>
+            <artifactId>aws-serverless-java-container-springboot3</artifactId>
+            <version>${aws.serverless.java.container.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>3.11.4</version>
         </dependency>
 
         <!-- Lombok -->
@@ -158,7 +175,27 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.flowboard.FlowBoardApplication</mainClass>
+                    <layout>ZIP</layout>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>lambda</id>
+            <properties>
+                <spring.profiles.active>lambda</spring.profiles.active>
+            </properties>
+        </profile>
+    </profiles>
 </project>

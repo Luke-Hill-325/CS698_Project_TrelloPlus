@@ -2,6 +2,7 @@ package com.flowboard.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -15,9 +16,13 @@ import java.util.Arrays;
  * - Board stage changes
  * - Card operations (create, update, move, delete)
  * - Real-time synchronization across multiple users
+ *
+ * Disabled in Lambda profile because API Gateway HTTP/REST APIs do not support
+ * WebSocket STOMP endpoints natively.
  */
 @Configuration
 @EnableWebSocketMessageBroker
+@Profile("!lambda")
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Value("${app.cors.allowed-origins:http://localhost:*,http://127.0.0.1:*}")

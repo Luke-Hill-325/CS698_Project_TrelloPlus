@@ -45,6 +45,9 @@ public class AIEngine {
     @Value("${ai.ollama.timeout-seconds:30}")
     private long ollamaTimeoutSeconds;
 
+    @Value("${ai.mock-enabled:false}")
+    private boolean mockEnabled;
+
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
@@ -54,6 +57,10 @@ public class AIEngine {
      * Analyzes project description and generates AI-suggested board structure.
      */
     public AIAnalysisResult analyzeProjectDescription(String projectName, String description) {
+        if (mockEnabled) {
+            log.info("Mock AI enabled: returning default project analysis");
+            return mockProjectAnalysis(projectName, description);
+        }
         try {
             ProjectAnalysisPayload payload = callOllama(
                 buildProjectPrompt(projectName, description),
@@ -86,6 +93,10 @@ public class AIEngine {
      * Analyzes meeting transcript to extract action items, decisions, and suggested changes.
      */
     public MeetingAnalysisResult analyzeMeetingTranscript(String transcript) {
+        if (mockEnabled) {
+            log.info("Mock AI enabled: returning default meeting analysis");
+            return mockMeetingAnalysis(transcript);
+        }
         try {
             MeetingAnalysisPayload payload = callOllama(
                 buildMeetingPrompt(transcript),
@@ -371,6 +382,35 @@ public class AIEngine {
 
     private String safeText(String value) {
         return value == null ? "" : value.replace('"', '\'').trim();
+    }
+
+    private AIAnalysisResult mockProjectAnalysis(String projectName, String description) {
+        AIAnalysisResult result = new AIAnalysisResult();
+        List<AIAnalysisResult.StageInfo> stages = new ArrayList<>();
+        stages.add(createStage("Backlog", "bg-slate-100", 0));
+        stages.add(createStage("To Do", "bg-gray-100", 1));
+        stages.add(createStage("In Progress", "bg-blue-100", 2));
+        stages.add(createStage("Review", "bg-amber-100", 3));
+        stages.add(createStage("Done", "bg-green-100", 4));
+        result.setStages(stages);
+
+        List<AIAnalysisResult.TaskInfo> tasks = new ArrayList<>();
+        tasks.add(createTask("Define requirements", "Gather and document project requirements", "HIGH", "Backlog"));
+        tasks.add(createTask("Set up repository", "Initialize version control and CI/CD pipeline", "HIGH", "To Do"));
+        tasks.add(createTask("Implement core features", "Build the main application functionality", "HIGH", "In Progress"));
+        tasks.add(createTask("Code review", "Review implementation for quality and security", "MEDIUM", "Review"));
+        tasks.add(createTask("Deploy to production", "Release the application to users", "MEDIUM", "Done"));
+        result.setTasks(tasks);
+        return result;
+    }
+
+    private MeetingAnalysisResult mockMeetingAnalysis(String transcript) {
+        MeetingAnalysisResult result = new MeetingAnalysisResult();
+        result.addActionItem("Follow up on open questions from the meeting", "General meeting follow-up", "MEDIUM");
+        result.addActionItem("Schedule next sync with the team", "Planning and coordination", "LOW");
+        result.addDecision("Proceed with the current approach", "Team alignment from discussion");
+        result.addChange("UPDATE_CARD", "Update project status based on meeting outcomes", "Post-meeting action");
+        return result;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

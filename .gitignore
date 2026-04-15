@@ -133,3 +133,8 @@ spring-boot-build-info.properties
 bin/
 build/
 out/
+# AWS deployment secrets and state
+.aws-deploy-state.json
+aws-deployment-credentials.env
+kimi-export-*.md
+AWS-DEPLOYMENT-NOTES.md

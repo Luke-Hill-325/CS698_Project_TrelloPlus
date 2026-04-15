@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: flowboard-backend
+  main:
+    web-application-type: servlet
+    banner-mode: "off"
+    lazy-initialization: true
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: deferred
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    continue-on-error: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        temp:
+          use_jdbc_metadata_defaults: false
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.flowboard: INFO
+    org.springframework.security: WARN
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
+ai:
+  mock-enabled: ${AI_MOCK_ENABLED:true}
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    model: ${OLLAMA_MODEL:qwen2.5:7b}
+    timeout-seconds: ${OLLAMA_TIMEOUT_SECONDS:30}
