@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,7 +24,7 @@ import java.util.UUID;
 @Builder
 public class Meeting {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -33,7 +34,7 @@ public class Meeting {
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     private String description;
 
     @Column(nullable = false)
@@ -46,7 +47,7 @@ public class Meeting {
     @Column(length = 500)
     private String meetingLink;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     private String transcript;
 
     @Enumerated(EnumType.STRING)

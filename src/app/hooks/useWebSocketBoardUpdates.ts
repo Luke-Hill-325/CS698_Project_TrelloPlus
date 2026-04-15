@@ -42,7 +42,7 @@ interface TeamMemberRoleChangedEvent {
   newRole: string;
 }
 
-const WS_ENDPOINT = 'http://localhost:8080/api/v1/ws/board';
+const WS_ENDPOINT = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1') + '/ws/board';
 
 export const useWebSocketBoardUpdates = (boardId: string | null, projectId: string | null = null) => {
   const stompClientRef = useRef<Client | null>(null);

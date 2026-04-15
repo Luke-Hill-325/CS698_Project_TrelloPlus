@@ -6,8 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,7 +19,7 @@ import java.util.UUID;
 @Builder
 public class ChangeAuditEntry {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,8 +34,7 @@ public class ChangeAuditEntry {
     @JoinColumn(name = "actor_id")
     private User actor;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSONB")
+    @Column
     private String details;
 
     @CreationTimestamp

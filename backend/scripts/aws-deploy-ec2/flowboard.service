@@ -1,0 +1,15 @@
+[Unit]
+Description=FlowBoard Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/flowboard/data/
+Environment="JWT_SECRET=REPLACE_ME"
+Environment="AI_MOCK_ENABLED=true"
+ExecStart=/usr/bin/java -jar -Dspring.profiles.active=ec2 /opt/flowboard/flowboard-backend-1.0.0.jar
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

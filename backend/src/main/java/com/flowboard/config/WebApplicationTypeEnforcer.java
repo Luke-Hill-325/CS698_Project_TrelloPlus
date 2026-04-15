@@ -14,7 +14,11 @@ public class WebApplicationTypeEnforcer implements ApplicationListener<Applicati
     public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
         SpringApplication app = event.getSpringApplication();
         app.setWebApplicationType(WebApplicationType.SERVLET);
-        event.getEnvironment().addActiveProfile("lambda");
-        System.out.println("[WebApplicationTypeEnforcer] Set web application type to SERVLET and added lambda profile");
+        if (!event.getEnvironment().matchesProfiles("ec2")) {
+            event.getEnvironment().addActiveProfile("lambda");
+            System.out.println("[WebApplicationTypeEnforcer] Set web application type to SERVLET and added lambda profile");
+        } else {
+            System.out.println("[WebApplicationTypeEnforcer] Set web application type to SERVLET (ec2 profile active, skipping lambda)");
+        }
     }
 }

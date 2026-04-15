@@ -6,8 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,7 +19,7 @@ import java.util.UUID;
 @Builder
 public class ChangeSnapshot {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,12 +30,10 @@ public class ChangeSnapshot {
     @JoinColumn(name = "board_id", nullable = false)
     private Board board;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSONB", nullable = false)
+    @Column(nullable = false)
     private String boardState;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSONB")
+    @Column
     private String rollbackState;
 
     @Enumerated(EnumType.STRING)

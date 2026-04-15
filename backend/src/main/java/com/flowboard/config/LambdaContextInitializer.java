@@ -7,6 +7,11 @@ public class LambdaContextInitializer implements ApplicationContextInitializer<C
 
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
+        if (applicationContext.getEnvironment().matchesProfiles("ec2")) {
+            System.out.println("[LambdaContextInitializer] ec2 profile active, skipping lambda initialization");
+            return;
+        }
+
         // Ensure PostgreSQL driver is registered early
         try {
             Class.forName("org.postgresql.Driver");

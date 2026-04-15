@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @Builder
 public class ChangeApprovalResponse {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,7 +38,7 @@ public class ChangeApprovalResponse {
     @Builder.Default
     private ApprovalDecision decision = ApprovalDecision.PENDING;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     private String feedback;
 
     private LocalDateTime decidedAt;

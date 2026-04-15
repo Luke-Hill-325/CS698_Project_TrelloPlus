@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,13 +20,13 @@ import java.util.UUID;
 @Builder
 public class Card {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     private String description;
 
     @Enumerated(EnumType.STRING)

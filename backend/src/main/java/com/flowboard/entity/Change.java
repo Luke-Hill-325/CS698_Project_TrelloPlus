@@ -6,9 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,7 +20,7 @@ import java.util.UUID;
 @Builder
 public class Change {
     @Id
-    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,12 +31,10 @@ public class Change {
     @Column(nullable = false)
     private ChangeType changeType;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSONB")
+    @Column
     private String beforeState;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSONB")
+    @Column
     private String afterState;
 
     @Enumerated(EnumType.STRING)
